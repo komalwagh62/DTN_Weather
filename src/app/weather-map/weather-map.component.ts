@@ -19,7 +19,6 @@ export class WeatherMapComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeMap();
-    this.fetchWeatherData();
   }
 
   private initializeMap(): void {
@@ -29,7 +28,7 @@ export class WeatherMapComponent implements OnInit {
     }).addTo(this.map);
   }
 
-  private fetchWeatherData(): void {
+  fetchWeatherData(): void {
     this.weatherService.getAccessToken().subscribe(
       (tokenResponse: string) => {
         console.log('Token Response:', tokenResponse); // Log the JWT token to check it
@@ -77,4 +76,67 @@ export class WeatherMapComponent implements OnInit {
       this.markers.push(marker); // Store the marker if you want to later manipulate or remove them
     }
   }
+
+
+  
+  
+  fetchObservationsData(): void {
+    this.weatherService.getAccessToken().subscribe(
+      (tokenResponse: string) => {
+        console.log('Token Response:', tokenResponse);
+        if (tokenResponse) {
+          const accessToken = tokenResponse;
+          const minLat = 6.0; // Set minimum latitude for bounding box
+          const maxLat = 37.0; // Set maximum latitude for bounding box
+          const minLon = 68.0; // Set minimum longitude for bounding box
+          const maxLon = 97.0; // Set maximum longitude for bounding box
+  
+          this.weatherService.getObservationsData(minLat, maxLat, minLon, maxLon, accessToken).subscribe(
+            (observationsData: any) => {
+              console.log('Observations Data:', observationsData);
+              if (observationsData) {
+                this.addMarkersForObservationsData(observationsData);
+              }
+            },
+            (error) => {
+              console.error('Error fetching observations data:', error);
+            }
+          );
+        } else {
+          console.error('Access token is missing or undefined');
+        }
+      },
+      (error) => {
+        console.error('Error obtaining access token:', error);
+      }
+    );
+  }
+  
+  
+  private addMarkersForObservationsData(observationsData: any): void {
+    observationsData.features.forEach((feature: any) => {
+      const [lon, lat] = feature.geometry.coordinates;
+      const stationName = feature.properties.tags.name;
+      const params = feature.properties.parameters.airTemp;
+      const wmoCode = feature.properties.tags.wmo;
+      const lastObsTimestamp = feature.properties.lastObsTimestamp;
+    console.log(params,"hj")
+      const marker = L.marker([lat, lon]).addTo(this.map);
+      
+      // Corrected popup content
+      const popupContent = `
+        <strong>Station:</strong> ${stationName} (${wmoCode})<br>
+        <strong>Last Observation:</strong> ${lastObsTimestamp}<br>
+        <strong>Elevation:</strong> ${feature.properties.elevation} m<br>
+      `;
+      
+      marker.bindPopup(popupContent);
+      this.markers.push(marker);
+    });
+  }
+  
+
+  
+  
+  
 }
